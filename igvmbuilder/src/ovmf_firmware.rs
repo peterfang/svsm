@@ -114,6 +114,9 @@ fn write_fw_info_memory_map(
     // smaller set of data than the firmware is capable of
     // handling.
     fw_info.memory_map_page_count = u32::try_from(page_count).unwrap_or(u32::MAX);
+    let map = fw_info.memory_map_page;
+    let count = fw_info.memory_map_page_count;
+    println!("write_fw_info_memory_map: {map:#x} {count:#x}");
     Ok(())
 }
 

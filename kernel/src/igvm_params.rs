@@ -12,7 +12,9 @@ use crate::cpu::efer::EFERFlags;
 use crate::error::SvsmError;
 use crate::mm::{GuestPtr, PerCPUPageMappingGuard, PAGE_SIZE};
 use crate::platform::{PageStateChangeOp, PageValidateOp, SevFWMetaData, SVSM_PLATFORM};
+use crate::sev::{rmp_adjust, RMPFlags};
 use crate::types::PageSize;
+use crate::utils::zero_mem_region;
 use crate::utils::MemoryRegion;
 use alloc::vec::Vec;
 use cpuarch::vmsa::VMSA;
@@ -217,6 +219,17 @@ impl IgvmParams<'_> {
         unsafe {
             SVSM_PLATFORM
                 .validate_virtual_page_range(mem_map_va_region, PageValidateOp::Validate)?;
+
+            for vaddr in mem_map_va_region.iter_pages(PageSize::Regular) {
+                // Make page accessible to guest VMPL
+                rmp_adjust(
+                    vaddr,
+                    RMPFlags::GUEST_VMPL | RMPFlags::RWX,
+                    PageSize::Regular,
+                )?;
+
+                zero_mem_region(vaddr, vaddr + PAGE_SIZE);
+            }
         }
 
         // Calculate the maximum number of entries that can be inserted.
